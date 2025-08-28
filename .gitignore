@@ -1,0 +1,10 @@
+# Ignore virtual environments
+.venv/
+venv/
+
+# Ignore datasets
+*.csv
+
+# Ignore binary libraries
+*.dll
+*.lib
