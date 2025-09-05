@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Action Items - Meeting Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0">
+                <i class="fas fa-tasks me-2"></i>Action Items
+            </h1>
+            <div class="d-flex gap-2">
+                <!-- Filter Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('action_items', status='all', priority='all') }}">All Items</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">By Status</h6></li>
+                        <li><a class="dropdown-item" href="{{ url_for('action_items', status='pending', priority=priority_filter) }}">Pending</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('action_items', status='in_progress', priority=priority_filter) }}">In Progress</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('action_items', status='completed', priority=priority_filter) }}">Completed</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">By Priority</h6></li>
+                        <li><a class="dropdown-item" href="{{ url_for('action_items', status=status_filter, priority='high') }}">High Priority</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('action_items', status=status_filter, priority='medium') }}">Medium Priority</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('action_items', status=status_filter, priority='low') }}">Low Priority</a></li>
+                    </ul>
+                </div>
+
+                <!-- Upload New Meeting -->
+                <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>New Meeting
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Filters -->
+{% if status_filter != 'all' or priority_filter != 'all' %}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-filter me-2"></i>Active filters:
+            {% if status_filter != 'all' %}
+                <span class="badge bg-primary me-2">Status: {{ status_filter.title() }}</span>
+            {% endif %}
+            {% if priority_filter != 'all' %}
+                <span class="badge bg-warning me-2">Priority: {{ priority_filter.title() }}</span>
+            {% endif %}
+            <a href="{{ url_for('action_items') }}" class="btn btn-sm btn-outline-info ms-2">Clear All</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Items List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if action_items.items %}
+                    <div class="list-group list-group-flush">
+                        {% for item in action_items.items %}
+                        <div class="list-group-item border-0 px-0 py-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <!-- Item Info -->
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <h6 class="mb-0 me-3">{{ item.title }}</h6>
+                                        <span class="badge bg-{{ 'success' if item.status == 'completed' else 'warning' if item.status == 'in_progress' else 'secondary' }} me-2">
+                                            {{ item.status.title() }}
+                                        </span>
+                                        <span class="badge bg-{{ 'danger' if item.priority == 'high' else 'warning' if item.priority == 'medium' else 'success' }}">
+                                            {{ item.priority.title() }} Priority
+                                        </span>
+                                    </div>
+
+                                    {% if item.description %}
+                                    <p class="mb-2 text-muted">{{ item.description }}</p>
+                                    {% endif %}
+
+                                    <div class="d-flex align-items-center text-muted small">
+                                        <span class="me-3">
+                                            <i class="fas fa-calendar me-1"></i>Meeting: {{ item.meeting.title }}
+                                        </span>
+                                        {% if item.assignee %}
+                                        <span class="me-3">
+                                            <i class="fas fa-user me-1"></i>{{ item.assignee }}
+                                        </span>
+                                        {% endif %}
+                                        {% if item.due_date %}
+                                        <span class="me-3">
+                                            <i class="fas fa-clock me-1"></i>Due: {{ item.due_date.strftime('%m/%d/%Y') }}
+                                        </span>
+                                        {% endif %}
+                                        <span>
+                                            <i class="fas fa-calendar-plus me-1"></i>Created: {{ item.created_at.strftime('%m/%d/%Y') }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Dropdown Actions -->
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('meeting_detail', meeting_id=item.meeting.id) }}">
+                                                <i class="fas fa-eye me-2"></i>View Meeting
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="updateStatus('{{ item.id }}', 'completed')">
+                                                <i class="fas fa-check me-2"></i>Mark Complete
+                                            </a>
+                                        </li>
+                                        
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="updateStatus('{{ item.id }}', 'in_progress')">
+                                                <i class="fas fa-play me-2"></i>Start Progress
+                                            </a>
+                                        </li>
+                                        
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="updateStatus('{{ item.id }}', 'in_progress')">
+                                                <i class="fas fa-play me-2"></i>Start Progress
+                                            </a>
+                                        </li>
+                                        
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="updateStatus('{{ item.id }}', 'cancelled')">
+                                                <i class="fas fa-times me-2"></i>Cancel
+                                            </a>
+                                        </li>
+                                        
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if action_items.pages > 1 %}
+                    <nav class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if action_items.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('action_items', page=action_items.prev_num, status=status_filter, priority=priority_filter) }}">Previous</a>
+                                </li>
+                            {% endif %}
+
+                            {% for page_num in action_items.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != action_items.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('action_items', page=page_num, status=status_filter, priority=priority_filter) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if action_items.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('action_items', page=action_items.next_num, status=status_filter, priority=priority_filter) }}">Next</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                    <!-- No Items -->
+                    <div class="text-center py-5">
+                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No action items found</h5>
+                        <p class="text-muted">
+                            {% if status_filter != 'all' or priority_filter != 'all' %}
+                                No action items match your current filters.
+                            {% else %}
+                                Upload a meeting transcript to generate action items!
+                            {% endif %}
+                        </p>
+                        {% if status_filter != 'all' or priority_filter != 'all' %}
+                            <a href="{{ url_for('action_items') }}" class="btn btn-outline-primary me-2">Clear Filters</a>
+                        {% endif %}
+                        <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Upload Meeting
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function updateStatus(actionItemId, status) {
+    fetch(`/api/action_items/${actionItemId}/status`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating status: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating status');
+    });
+}
+</script>
+{% endblock %}

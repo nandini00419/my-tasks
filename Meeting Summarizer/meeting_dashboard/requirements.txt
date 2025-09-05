@@ -1,0 +1,47 @@
+# Core Flask dependencies
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Login==0.6.3
+Flask-Migrate==4.0.5
+Werkzeug==2.3.7
+
+# Database
+SQLAlchemy==2.0.21
+
+# HTTP requests for Groq API
+requests==2.31.0
+
+# File processing
+PyPDF2==3.0.1
+python-docx==0.8.11
+faster-whisper==1.0.3
+ffmpeg-python==0.2.0
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Production server
+gunicorn==21.2.0
+
+# Development dependencies (optional)
+# Uncomment these for development
+# flask-debugtoolbar==0.13.1
+# pytest==7.4.2
+# pytest-flask==1.2.0
+# black==23.7.0
+# flake8==6.0.0
+
+# Optional: For enhanced file processing
+# Pillow==10.0.0  # For image processing if needed
+# openpyxl==3.1.2  # For Excel file processing if needed
+
+# Google APIs
+google-auth-oauthlib==1.2.0
+google-api-python-client==2.133.0
+
+# Web automation for meeting joining
+selenium==4.15.2
+webdriver-manager==4.0.1
+
+# Real-time notifications
+flask-socketio==5.3.6

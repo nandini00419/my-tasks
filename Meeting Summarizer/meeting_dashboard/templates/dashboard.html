@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Meeting Dashboard{% endblock %}
+
+{% block content %}
+<!-- Notification Area -->
+<div id="notificationArea" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <!-- Notifications will be dynamically added here -->
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </h1>
+            <div>
+                <button class="btn btn-outline-info me-2" onclick="checkMeetingStatus()">
+                    <i class="fas fa-sync-alt me-1"></i>Check Status
+                </button>
+                <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>New Meeting
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Total Meetings</h6>
+                        <h3 class="mb-0">{{ meetings.total }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-alt fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Action Items</h6>
+                        <h3 class="mb-0">{{ recent_action_items|length }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-tasks fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Pending</h6>
+                        <h3 class="mb-0">{{ recent_action_items|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Completed</h6>
+                        <h3 class="mb-0">{{ recent_action_items|selectattr('status', 'equalto', 'completed')|list|length }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Meetings + Timeline -->
+    <div class="col-lg-8 mb-4">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Action Items Timeline
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="timelineChart" style="height: 320px;"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar me-2"></i>Recent Meetings
+                </h5>
+                <a href="{{ url_for('upload') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-plus me-1"></i>Add Meeting
+                </a>
+            </div>
+            <div class="card-body">
+                {% if meetings.items %}
+                    <div class="list-group list-group-flush">
+                        {% for meeting in meetings.items %}
+                        <div class="list-group-item border-0 px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="text-decoration-none">
+                                            {{ meeting.title }}
+                                        </a>
+                                    </h6>
+                                    <p class="mb-1 text-muted small">
+                                        {{ meeting.description[:100] }}{% if meeting.description|length > 100 %}...{% endif %}
+                                    </p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar me-1"></i>{{ meeting.meeting_date.strftime('%B %d, %Y') }}
+                                        <span class="ms-3">
+                                            <i class="fas fa-tasks me-1"></i>{{ meeting.action_items|length }} action items
+                                        </span>
+                                    </small>
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}">
+                                            <i class="fas fa-eye me-2"></i>View Details
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if meetings.pages > 1 %}
+                    <nav class="mt-3">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            {% if meetings.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('dashboard', page=meetings.prev_num) }}">Previous</a>
+                                </li>
+                            {% endif %}
+                            {% for page_num in meetings.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != meetings.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('dashboard', page=page_num) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if meetings.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('dashboard', page=meetings.next_num) }}">Next</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No meetings yet</h5>
+                        <p class="text-muted">Upload your first meeting transcript to get started!</p>
+                        <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Upload Meeting
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Action Items -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks me-2"></i>Recent Action Items
+                </h5>
+                <a href="{{ url_for('action_items') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye me-1"></i>View All
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_action_items %}
+                    <div class="list-group list-group-flush">
+                        {% for item in recent_action_items[:5] %}
+                        <div class="list-group-item border-0 px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ item.title }}</h6>
+                                    <p class="mb-1 text-muted small">{{ item.meeting.title }}</p>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-{{ 'success' if item.status == 'completed' else 'warning' if item.status == 'in_progress' else 'secondary' }} me-2">
+                                            {{ item.status.title() }}
+                                        </span>
+                                        {% if item.assignee %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-user me-1"></i>{{ item.assignee }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{ item.id }}', 'completed')">
+                                            <i class="fas fa-check me-2"></i>Mark Complete
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="updateStatus('{{ item.id }}', 'in_progress')">
+                                            <i class="fas fa-play me-2"></i>Start Progress
+                                        </a></li>
+                                        
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-tasks fa-2x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No action items yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Render timeline chart
+document.addEventListener('DOMContentLoaded', function() {
+    const el = document.getElementById('timelineChart');
+    if (!el) return;
+    fetch('/api/action_items/timeline')
+        .then(r => r.json())
+        .then(data => {
+            const items = data.items || [];
+            
+            // If no items with due dates, show created dates instead
+            let byDate = {};
+            let hasDueDates = false;
+            
+            items.forEach(it => {
+                if (it.due_date) {
+                    hasDueDates = true;
+                    const d = it.due_date.substring(0, 10);
+                    byDate[d] = (byDate[d] || 0) + 1;
+                }
+            });
+            
+            // If no due dates, use created dates
+            if (!hasDueDates) {
+                items.forEach(it => {
+                    if (it.created_at) {
+                        const d = it.created_at.substring(0, 10);
+                        byDate[d] = (byDate[d] || 0) + 1;
+                    }
+                });
+            }
+            
+            const dates = Object.keys(byDate).sort();
+            const counts = dates.map(d => byDate[d]);
+            
+            // If still no data, show a message
+            if (dates.length === 0) {
+                el.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-chart-line fa-2x mb-2"></i><p>No action items data available</p></div>';
+                return;
+            }
+            
+            const trace = { 
+                x: dates, 
+                y: counts, 
+                type: 'scatter', 
+                mode: 'lines+markers', 
+                line: {color: '#0d6efd'},
+                marker: {size: 8}
+            };
+            const layout = { 
+                margin: {l: 40, r: 10, t: 10, b: 40}, 
+                xaxis: {title: hasDueDates ? 'Due Date' : 'Created Date'}, 
+                yaxis: {title: 'Action Items'},
+                showlegend: false
+            };
+            Plotly.newPlot(el, [trace], layout, {displayModeBar: false});
+        })
+        .catch((error) => {
+            console.error('Error loading timeline data:', error);
+            el.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Error loading chart data</p></div>';
+        });
+});
+
+function updateStatus(actionItemId, status) {
+    fetch(`/api/action_items/${actionItemId}/status`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Action item status updated successfully!', 'success');
+            location.reload();
+        } else {
+            showNotification('Error updating status: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error updating status', 'error');
+    });
+}
+
+// Notification system
+function showNotification(message, type = 'info', duration = 5000) {
+    const notificationArea = document.getElementById('notificationArea');
+    const notificationId = 'notification-' + Date.now();
+    
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+    
+    const iconClass = {
+        'success': 'fas fa-check-circle',
+        'error': 'fas fa-exclamation-circle',
+        'warning': 'fas fa-exclamation-triangle',
+        'info': 'fas fa-info-circle'
+    }[type] || 'fas fa-info-circle';
+    
+    const notification = document.createElement('div');
+    notification.id = notificationId;
+    notification.className = `alert ${alertClass} alert-dismissible fade show mb-2`;
+    notification.style.minWidth = '300px';
+    notification.innerHTML = `
+        <i class="${iconClass} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    notificationArea.appendChild(notification);
+    
+    // Auto-remove after duration
+    setTimeout(() => {
+        const element = document.getElementById(notificationId);
+        if (element) {
+            element.remove();
+        }
+    }, duration);
+}
+
+// Check meeting processing status
+function checkMeetingStatus() {
+    showNotification('Checking meeting status...', 'info', 2000);
+    
+    // Simulate checking for ongoing meeting processing
+    fetch('/api/meetings/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.processing) {
+                showNotification(`Meeting processing in progress: ${data.message}`, 'info');
+            } else {
+                showNotification('No meetings currently being processed', 'info');
+            }
+        })
+        .catch(error => {
+            console.error('Error checking status:', error);
+            showNotification('Error checking meeting status', 'error');
+        });
+}
+
+// Real-time updates simulation
+function startRealTimeUpdates() {
+    // Check for updates every 30 seconds
+    setInterval(() => {
+        fetch('/api/action_items/timeline')
+            .then(response => response.json())
+            .then(data => {
+                // Update timeline chart if data changed
+                updateTimelineChart(data);
+            })
+            .catch(error => {
+                console.error('Error updating timeline:', error);
+            });
+    }, 30000);
+}
+
+// Update timeline chart with new data
+function updateTimelineChart(data) {
+    const el = document.getElementById('timelineChart');
+    if (!el) return;
+    
+    const items = data.items || [];
+    let byDate = {};
+    let hasDueDates = false;
+    
+    items.forEach(it => {
+        if (it.due_date) {
+            hasDueDates = true;
+            const d = it.due_date.substring(0, 10);
+            byDate[d] = (byDate[d] || 0) + 1;
+        }
+    });
+    
+    if (!hasDueDates) {
+        items.forEach(it => {
+            if (it.created_at) {
+                const d = it.created_at.substring(0, 10);
+                byDate[d] = (byDate[d] || 0) + 1;
+            }
+        });
+    }
+    
+    const dates = Object.keys(byDate).sort();
+    const counts = dates.map(d => byDate[d]);
+    
+    if (dates.length > 0) {
+        const trace = { 
+            x: dates, 
+            y: counts, 
+            type: 'scatter', 
+            mode: 'lines+markers', 
+            line: {color: '#0d6efd'},
+            marker: {size: 8}
+        };
+        const layout = { 
+            margin: {l: 40, r: 10, t: 10, b: 40}, 
+            xaxis: {title: hasDueDates ? 'Due Date' : 'Created Date'}, 
+            yaxis: {title: 'Action Items'},
+            showlegend: false
+        };
+        Plotly.react(el, [trace], layout, {displayModeBar: false});
+    }
+}
+
+// Initialize real-time updates
+document.addEventListener('DOMContentLoaded', function() {
+    startRealTimeUpdates();
+});
+</script>
+{% endblock %}

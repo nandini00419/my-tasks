@@ -1,10 +1,39 @@
-# Ignore virtual environments
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
 .venv/
 venv/
 
-# Ignore datasets
-*.csv
+# Environment variables
+.env
 
-# Ignore binary libraries
-*.dll
-*.lib
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# PyTorch and model weights
+*.pt
+*.pth
+*.ckpt
+
+# Data files
+*.csv
+*.tsv
+*.json
+*.db
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/project files
+.vscode/
+.idea/
+
+# Joblib files
+*.joblib

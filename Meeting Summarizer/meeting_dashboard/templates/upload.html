@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Meeting - Meeting Dashboard{% endblock %}
+
+{% block content %}
+<!-- Notification Area -->
+<div id="notificationArea" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <!-- Notifications will be dynamically added here -->
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-upload me-2"></i>Upload Meeting Transcript
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-4">
+                        <label for="title" class="form-label">Meeting Title *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Brief description of the meeting..."></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="participants" class="form-label">Participants</label>
+                        <input type="text" class="form-control" id="participants" name="participants" placeholder="John Doe, Jane Smith, Bob Johnson">
+                        <div class="form-text">Separate multiple participants with commas</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="meeting_link" class="form-label">Meeting Link</label>
+                        <input type="url" class="form-control" id="meeting_link" name="meeting_link" placeholder="https://meet.example.com/abc-123">
+                        <div class="form-text">Optional link to the meeting (Google Meet, Zoom, Teams, etc.)</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Upload Method</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card border-primary">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-file-upload fa-2x text-primary mb-3"></i>
+                                        <h6>Upload File</h6>
+                                        <p class="text-muted small">Upload a transcript file (TXT, PDF, DOCX, MD)</p>
+                                        <input type="file" class="form-control" id="transcript_file" name="transcript_file" accept=".txt,.pdf,.docx,.md">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-secondary">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-keyboard fa-2x text-secondary mb-3"></i>
+                                        <h6>Paste Text</h6>
+                                        <p class="text-muted small">Paste your transcript directly</p>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="toggleTextInput()">
+                                            <i class="fas fa-edit me-1"></i>Paste Text
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-info">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-video fa-2x text-info mb-3"></i>
+                                        <h6>Process Meeting Link</h6>
+                                        <p class="text-muted small">Auto-join and record Zoom meetings</p>
+                                        <button type="button" class="btn btn-outline-info" onclick="toggleMeetingLinkInput()">
+                                            <i class="fas fa-link me-1"></i>Process Link
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-12 mt-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <i class="fas fa-microphone fa-lg text-success me-2"></i>
+                                                <strong>Record Audio</strong>
+                                                <div class="text-muted small">Record the meeting audio directly from your browser</div>
+                                            </div>
+                                            <div>
+                                                <button type="button" class="btn btn-success me-2" id="startRecBtn"><i class="fas fa-circle me-1"></i>Start</button>
+                                                <button type="button" class="btn btn-outline-danger" id="stopRecBtn" disabled><i class="fas fa-square me-1"></i>Stop</button>
+                                            </div>
+                                        </div>
+                                        <audio id="recordedAudio" controls class="mt-3" style="width:100%; display:none;"></audio>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="textInputSection" style="display: none;">
+                        <label for="transcript_text" class="form-label">Meeting Transcript</label>
+                        <textarea class="form-control" id="transcript_text" name="transcript_text" rows="10" placeholder="Paste your meeting transcript here..."></textarea>
+                        <div class="form-text">You can paste the transcript text directly or upload a file above</div>
+                    </div>
+
+                    <div class="mb-4" id="meetingLinkSection" style="display: none;">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-video me-2"></i>Process Meeting Link
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="meeting_url" class="form-label">Meeting URL *</label>
+                                    <input type="url" class="form-control" id="meeting_url" placeholder="https://us04web.zoom.us/j/79367610783?pwd=EENLZDA6Eeo8igEnGoy6rGRp7aByak.1">
+                                    <div class="form-text">Paste the complete meeting URL (Zoom, Teams, etc.)</div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="duration_minutes" class="form-label">Expected Duration (minutes)</label>
+                                        <input type="number" class="form-control" id="duration_minutes" value="60" min="1" max="480">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Platform</label>
+                                        <div id="platform_info" class="form-control-plaintext text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>Detected platform will appear here
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Note:</strong> For Zoom meetings, the system will automatically join and record the meeting. 
+                                        For other platforms, the link will be saved for manual processing.
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="validateMeetingLink()">
+                                        <i class="fas fa-check me-1"></i>Validate Link
+                                    </button>
+                                    <button type="button" class="btn btn-info" onclick="processMeetingLink()">
+                                        <i class="fas fa-play me-1"></i>Start Processing
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-magic me-2"></i>Process Meeting
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>How to Upload
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-file-alt me-2"></i>Supported File Types</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Text files (.txt)</li>
+                            <li><i class="fas fa-check text-success me-2"></i>PDF documents (.pdf)</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Word documents (.docx)</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Markdown files (.md)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Tips for Better Results</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-info-circle text-info me-2"></i>Include speaker names when possible</li>
+                            <li><i class="fas fa-info-circle text-info me-2"></i>Remove timestamps for cleaner analysis</li>
+                            <li><i class="fas fa-info-circle text-info me-2"></i>Ensure good transcript quality</li>
+                            <li><i class="fas fa-info-circle text-info me-2"></i>Include all discussion points</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Notification system
+function showNotification(message, type = 'info', duration = 5000) {
+    const notificationArea = document.getElementById('notificationArea');
+    const notificationId = 'notification-' + Date.now();
+    
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+    
+    const iconClass = {
+        'success': 'fas fa-check-circle',
+        'error': 'fas fa-exclamation-circle',
+        'warning': 'fas fa-exclamation-triangle',
+        'info': 'fas fa-info-circle'
+    }[type] || 'fas fa-info-circle';
+    
+    const notification = document.createElement('div');
+    notification.id = notificationId;
+    notification.className = `alert ${alertClass} alert-dismissible fade show mb-2`;
+    notification.style.minWidth = '300px';
+    notification.innerHTML = `
+        <i class="${iconClass} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    notificationArea.appendChild(notification);
+    
+    // Auto-remove after duration
+    setTimeout(() => {
+        const element = document.getElementById(notificationId);
+        if (element) {
+            element.remove();
+        }
+    }, duration);
+}
+
+function toggleTextInput() {
+    const textSection = document.getElementById('textInputSection');
+    const meetingLinkSection = document.getElementById('meetingLinkSection');
+    const fileInput = document.getElementById('transcript_file');
+    
+    if (textSection.style.display === 'none') {
+        textSection.style.display = 'block';
+        meetingLinkSection.style.display = 'none';
+        fileInput.disabled = true;
+        fileInput.value = '';
+    } else {
+        textSection.style.display = 'none';
+        fileInput.disabled = false;
+        document.getElementById('transcript_text').value = '';
+    }
+}
+
+function toggleMeetingLinkInput() {
+    const meetingLinkSection = document.getElementById('meetingLinkSection');
+    const textSection = document.getElementById('textInputSection');
+    const fileInput = document.getElementById('transcript_file');
+    
+    if (meetingLinkSection.style.display === 'none') {
+        meetingLinkSection.style.display = 'block';
+        textSection.style.display = 'none';
+        fileInput.disabled = true;
+        fileInput.value = '';
+    } else {
+        meetingLinkSection.style.display = 'none';
+        fileInput.disabled = false;
+        document.getElementById('meeting_url').value = '';
+    }
+}
+
+// Handle file input change
+document.getElementById('transcript_file').addEventListener('change', function() {
+    const textSection = document.getElementById('textInputSection');
+    const textInput = document.getElementById('transcript_text');
+    
+    if (this.files.length > 0) {
+        textSection.style.display = 'none';
+        textInput.value = '';
+    }
+});
+
+// Form validation
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const fileInput = document.getElementById('transcript_file');
+    const textInput = document.getElementById('transcript_text');
+    const recordedAudioEl = document.getElementById('recordedAudio');
+    
+    if (!fileInput.files.length && !textInput.value.trim() && recordedAudioEl.style.display === 'none') {
+        e.preventDefault();
+        alert('Please either upload a file or paste transcript text.');
+        return false;
+    }
+});
+
+// Audio recording
+let mediaRecorder;
+let recordedChunks = [];
+
+const startBtn = document.getElementById('startRecBtn');
+const stopBtn = document.getElementById('stopRecBtn');
+const audioEl = document.getElementById('recordedAudio');
+
+startBtn.addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+            audioEl.src = URL.createObjectURL(blob);
+            audioEl.style.display = 'block';
+            // Upload recording for transcription
+            const formData = new FormData();
+            formData.append('audio', blob, 'recording.webm');
+            formData.append('title', document.getElementById('title').value || 'Recorded Meeting');
+            formData.append('description', document.getElementById('description').value || '');
+            formData.append('participants', document.getElementById('participants').value || '');
+            formData.append('meeting_link', document.getElementById('meeting_link').value || '');
+            const resp = await fetch('/api/meetings/recording', { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (data.success) {
+                window.location = `/meeting/${data.meeting_id}`;
+            } else {
+                alert('Transcription failed: ' + (data.error || 'Unknown error'));
+            }
+        };
+        mediaRecorder.start();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+    } catch (err) {
+        console.error(err);
+        alert('Microphone permission denied or unsupported browser.');
+    }
+});
+
+stopBtn.addEventListener('click', () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+    }
+});
+
+// Meeting link processing functions
+function validateMeetingLink() {
+    const meetingUrl = document.getElementById('meeting_url').value.trim();
+    const platformInfo = document.getElementById('platform_info');
+    
+    if (!meetingUrl) {
+        alert('Please enter a meeting URL');
+        return;
+    }
+    
+    platformInfo.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Validating...';
+    
+    fetch('/api/meetings/validate_link', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ meeting_url: meetingUrl })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.valid) {
+            const platform = data.platform || 'Unknown';
+            const meetingId = data.meeting_id || 'N/A';
+            platformInfo.innerHTML = `
+                <i class="fas fa-check-circle text-success me-1"></i>
+                <strong>${platform}</strong> - Meeting ID: ${meetingId}
+            `;
+        } else {
+            platformInfo.innerHTML = `
+                <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                <span class="text-warning">${data.error || 'Invalid meeting URL'}</span>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        platformInfo.innerHTML = `
+            <i class="fas fa-times-circle text-danger me-1"></i>
+            <span class="text-danger">Error validating link</span>
+        `;
+    });
+}
+
+function processMeetingLink() {
+    const meetingUrl = document.getElementById('meeting_url').value.trim();
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const participants = document.getElementById('participants').value.trim();
+    const durationMinutes = parseInt(document.getElementById('duration_minutes').value) || 60;
+    
+    if (!meetingUrl) {
+        showNotification('Please enter a meeting URL', 'warning');
+        return;
+    }
+    
+    if (!title) {
+        showNotification('Please enter a meeting title', 'warning');
+        return;
+    }
+    
+    // Show processing message
+    const processBtn = event.target;
+    const originalText = processBtn.innerHTML;
+    processBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    processBtn.disabled = true;
+    
+    showNotification('Starting meeting processing...', 'info');
+    
+    fetch('/api/meetings/process_link', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            meeting_url: meetingUrl,
+            title: title,
+            description: description,
+            participants: participants,
+            duration_minutes: durationMinutes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            
+            // Show additional info for Zoom meetings
+            if (data.meeting_info && data.meeting_info.platform === 'Zoom') {
+                showNotification('Zoom meeting will be joined automatically. Recording will start shortly.', 'info', 8000);
+            }
+            
+            setTimeout(() => {
+                if (data.meeting_id) {
+                    window.location.href = `/meeting/${data.meeting_id}`;
+                } else {
+                    window.location.href = '/dashboard';
+                }
+            }, 2000);
+        } else {
+            showNotification('Error: ' + (data.error || 'Unknown error occurred'), 'error');
+            processBtn.innerHTML = originalText;
+            processBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error processing meeting link', 'error');
+        processBtn.innerHTML = originalText;
+        processBtn.disabled = false;
+    });
+}
+
+// Auto-validate URL when user pastes it
+document.getElementById('meeting_url').addEventListener('paste', function() {
+    setTimeout(() => {
+        const url = this.value.trim();
+        if (url && (url.includes('zoom.us') || url.includes('teams.microsoft.com') || url.includes('meet.google.com'))) {
+            validateMeetingLink();
+        }
+    }, 100);
+});
+</script>
+{% endblock %}

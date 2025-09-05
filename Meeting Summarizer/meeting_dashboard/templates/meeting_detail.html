@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}{{ meeting.title }} - Meeting Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h2 mb-1">{{ meeting.title }}</h1>
+                <p class="text-muted mb-0">
+                    <i class="fas fa-calendar me-1"></i>{{ meeting.meeting_date.strftime('%B %d, %Y at %I:%M %p') }}
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Meeting Info -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Meeting Information
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if meeting.description %}
+                <div class="mb-4">
+                    <h6>Description</h6>
+                    <p class="text-muted">{{ meeting.description }}</p>
+                </div>
+                {% endif %}
+                <div class="mb-4">
+                    <h6>Meeting Link</h6>
+                    {% if meeting.meeting_link %}
+                    <p class="mb-2"><a href="{{ meeting.meeting_link }}" target="_blank">{{ meeting.meeting_link }}</a></p>
+                    {% else %}
+                    <div class="d-flex gap-2">
+                        <input type="email" id="attendeeEmail" class="form-control" placeholder="attendee@example.com" style="max-width:280px;">
+                        <button class="btn btn-outline-primary" onclick="createMeet()"><i class="fas fa-video me-1"></i>Create Google Meet</button>
+                    </div>
+                    <small class="text-muted">You will be asked to grant Google permission on first use.</small>
+                    {% endif %}
+                </div>
+                
+                {% if meeting.participants %}
+                <div class="mb-4">
+                    <h6>Participants</h6>
+                    <p class="text-muted">{{ meeting.participants }}</p>
+                </div>
+                {% endif %}
+                
+                {% if meeting.duration_minutes %}
+                <div class="mb-4">
+                    <h6>Duration</h6>
+                    <p class="text-muted">{{ meeting.duration_minutes }} minutes</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Summary -->
+        {% if meeting.summary %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Meeting Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="summary-content">
+                    {{ meeting.summary|replace('\n', '<br>')|safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Transcript -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-text me-2"></i>Transcript
+                </h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="toggleTranscript()">
+                    <i class="fas fa-eye me-1"></i><span id="transcriptToggle">Show</span>
+                </button>
+            </div>
+            <div class="card-body" id="transcriptContent" style="display: none;">
+                <div class="transcript-text">
+                    {{ meeting.transcript|replace('\n', '<br>')|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Items -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks me-2"></i>Action Items
+                </h5>
+                <span class="badge bg-primary">{{ meeting.action_items|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if meeting.action_items %}
+                    <div class="list-group list-group-flush">
+                        {% for item in meeting.action_items %}
+                        <div class="list-group-item border-0 px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ item.title }}</h6>
+                                    {% if item.description %}
+                                    <p class="mb-1 text-muted small">{{ item.description }}</p>
+                                    {% endif %}
+                                    <div class="d-flex align-items-center flex-wrap">
+                                        <span class="badge bg-{{ 'success' if item.status == 'completed' else 'warning' if item.status == 'in_progress' else 'secondary' }} me-2 mb-1">
+                                            {{ item.status.title() }}
+                                        </span>
+                                        <span class="badge bg-{{ 'danger' if item.priority == 'high' else 'warning' if item.priority == 'medium' else 'success' }} me-2 mb-1">
+                                            {{ item.priority.title() }} Priority
+                                        </span>
+                                        {% if item.assignee %}
+                                        <small class="text-muted mb-1">
+                                            <i class="fas fa-user me-1"></i>{{ item.assignee }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fas fa-calendar-plus me-1"></i>Created: {{ item.created_at.strftime('%m/%d/%Y') }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-link me-1"></i>Meeting: 
+                                        <a href="{{ meeting.description }}" target="_blank">{{ meeting.description }}</a>
+                                    </small>
+                                    {% if item.due_date %}
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-calendar me-1"></i>Due: {{ item.due_date.strftime('%m/%d/%Y') }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="updateStatus({{ item.id }}, 'completed')">
+                                            <i class="fas fa-check me-2"></i>Mark Complete
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="updateStatus({{ item.id }}, 'in_progress')">
+                                            <i class="fas fa-play me-2"></i>Start Progress
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="updateStatus({{ item.id }}, 'pending')">
+                                            <i class="fas fa-pause me-2"></i>Mark Pending
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="updateStatus({{ item.id }}, 'cancelled')">
+                                            <i class="fas fa-times me-2"></i>Cancel
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-tasks fa-2x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No action items found</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Quick Stats
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="border-end">
+                            <h4 class="text-success mb-1">{{ meeting.action_items|selectattr('status', 'equalto', 'completed')|list|length }}</h4>
+                            <small class="text-muted">Completed</small>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <h4 class="text-warning mb-1">{{ meeting.action_items|selectattr('status', 'equalto', 'pending')|list|length }}</h4>
+                        <small class="text-muted">Pending</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-info mb-1">{{ meeting.action_items|selectattr('status', 'equalto', 'in_progress')|list|length }}</h4>
+                            <small class="text-muted">In Progress</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-danger mb-1">{{ meeting.action_items|selectattr('priority', 'equalto', 'high')|list|length }}</h4>
+                        <small class="text-muted">High Priority</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function toggleTranscript() {
+    const content = document.getElementById('transcriptContent');
+    const toggle = document.getElementById('transcriptToggle');
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.textContent = 'Hide';
+    } else {
+        content.style.display = 'none';
+        toggle.textContent = 'Show';
+    }
+}
+
+function updateStatus(actionItemId, status) {
+    fetch(`/api/action_items/${actionItemId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert('Error updating status: ' + data.error);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating status');
+    });
+}
+
+async function createMeet() {
+    const email = document.getElementById('attendeeEmail').value;
+    const body = {
+        meeting_id: {{ meeting.id }},
+        attendees: email ? [email] : [],
+        summary: '{{ meeting.title|e }}',
+        description: '{{ (meeting.description or "")|e }}'
+    };
+    const resp = await fetch('/api/google/create_meet_link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+    if (data.success) {
+        location.reload();
+    } else {
+        alert('Failed to create Meet link: ' + (data.error || 'Unknown error'));
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.summary-content { line-height: 1.6; }
+.transcript-text {
+    max-height: 400px;
+    overflow-y: auto;
+    line-height: 1.5;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.375rem;
+}
+</style>
+{% endblock %}
